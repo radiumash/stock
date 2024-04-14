@@ -210,8 +210,8 @@ if tickerSymbol:
         # Bollinger bands
         st.header('Models and Prediction', divider='rainbow')
         #tab21, tab22, tab23, tab24 = st.tabs(["LSTM", "Chart 1", "Chart 2", "Chart 3"])
-        model1 = load_model('./LSTM_model.keras')
-        model2 = load_model('./Bi_LSTM_model.keras')
+        model1 = load_model('./models/LSTM_model.keras')
+        model2 = load_model('./models/Bi_LSTM_model.keras')
 
         y = tickerDf['Close'].fillna(method='ffill')
         y = y.values.reshape(-1, 1)
