@@ -1,92 +1,179 @@
+from tvDatafeed import TvDatafeed, Interval
 import pandas as pd
-import numpy as np
-import matplotlib.pylab as plt
-import plotly.graph_objs as go
+#import numpy as np
+import cufflinks as cf
+import matplotlib.dates as mdates
 import streamlit as st
-
 import yfinance as yf
+import matplotlib.pyplot as plt
+from matplotlib import style
+import mplfinance as mpf
 from datetime import datetime, timedelta
-import tensorflow as tf
-from keras.models import Sequential
-from keras.layers import Bidirectional, Dense, Dropout
-from keras.layers import LSTM
-from sklearn.model_selection import GridSearchCV
-from keras.optimizers import Adam
-from sklearn.preprocessing import MinMaxScaler
-import math
-from sklearn.metrics import mean_squared_error
+# from sklearn.preprocessing import MinMaxScaler
+# import tensorflow as tf
+# from keras.models import Sequential
+# from keras.layers import Dense
+# from keras.layers import LSTM
+# import math
+#from sklearn.metrics import mean_squared_error
 import warnings
 warnings.simplefilter("ignore")
 
+username = 'shenaal1992@gmail.com'
+password = 'Menushiiloveu22'
+
 exchange = "NASDAQ"
 
-def create_dataset(dataset, time_step = 1):
-    dataX,dataY = [],[]
-    for i in range(len(dataset)-time_step-1):
-                   a = dataset[i:(i+time_step),0]
-                   dataX.append(a)
-                   dataY.append(dataset[i + time_step,0])
-    return np.array(dataX),np.array(dataY)
+# Define Intervals
+def interval(i):
+  if i == 1:
+    interval=Interval.in_1_hour
 
-def bollingerLive(tickerData, moving_avg_size, period, interval_length):
+  elif i == 4:
+    interval=Interval.in_4_hour
 
-    data = tickerData.history(period=period,interval=interval_length)
-    data['Middle Band'] = data['Close'].rolling(window=moving_avg_size).mean()
-    data['Upper Band'] = data['Middle Band'] + 1.96 * data['Close'].rolling(window=moving_avg_size).std()
-    data['Lower Band'] = data['Middle Band'] - 1.96 * data['Close'].rolling(window=moving_avg_size).std()
+  elif i == 24:
+    interval=Interval.in_daily
 
-    fig = go.Figure()
+  return interval
 
-    fig.add_trace(go.Scatter(x=data.index, y=data['Middle Band'], line=dict(color='gray', width=.7), name='Middle Band'))
-    fig.add_trace(go.Scatter(x=data.index, y=data['Upper Band'], line=dict(color='red', width=1.5), name='Upper Band(Sell)'))
-    fig.add_trace(go.Scatter(x=data.index, y=data['Lower Band'], line=dict(color='green', width=1.5), name='Lower Band(Buy)'))
-
-    fig.add_trace(go.Candlestick(x=data.index, open=data['Open'], high=data['High'], low=data['Low'], close=data['Close'], name='Market Data'))
-    if 'longName' in tickerData.info:
-        string_name = tickerData.info['longName']
-
-    fig.update_layout(
-        title=string_name + ' Live Share Price',
-        yaxis_title = 'Stock Price')
-
-    fig.update_xaxes(
-        rangeslider_visible=True,
-        rangeselector=dict(
-            buttons=list([
-                dict(count=15, label='15m', step='minute', stepmode='backward'),
-                dict(count=45, label='45m', step='minute', stepmode='backward'),
-                dict(count=1, label='HTD', step='hour', stepmode='todate'),
-                dict(count=3, label='3h', step='hour', stepmode='backward'),
-                dict(step='all')
-            ])
-        )
-    )
-
-    return fig
-
+def bollingerLive(symbol,exchange):
+    pass
 
 # Create Bollinger Bands
-def bollingerStd(data, moving_avg_size):
+def bollingerStd(symbol, exchange, moving_avg_size, no_steps_from_final_steps, interval_length, number_of_bars):
 
-    data['Middle Band'] = data['Close'].rolling(window=moving_avg_size).mean()
-    data['Upper Band'] = data['Middle Band'] + 1.96 * data['Close'].rolling(window=moving_avg_size).std()
-    data['Lower Band'] = data['Middle Band'] - 1.96 * data['Close'].rolling(window=moving_avg_size).std()
+    tv = TvDatafeed(username, password)
+    index_data = tv.get_hist(symbol=symbol,exchange=exchange,interval=interval(interval_length),n_bars=number_of_bars)
 
-    fig = go.Figure()
+    data = index_data.tail(no_steps_from_final_steps)
+    if not data.empty:
+        # Calculate Bollinger Bands
+        data['_MA'] = data['close'].rolling(window=moving_avg_size).mean()
+        data['Upper_Band'] = data['_MA'] + 3 * data['close'].rolling(window=moving_avg_size).std()
+        data['Lower_Band'] = data['_MA'] - 3 * data['close'].rolling(window=moving_avg_size).std()
 
-    fig.add_trace(go.Scatter(x=data.index, y=data['Middle Band'], line=dict(color='gray', width=.7), name='Middle Band'))
-    fig.add_trace(go.Scatter(x=data.index, y=data['Upper Band'], line=dict(color='red', width=1.5), name='Upper Band(Sell)'))
-    fig.add_trace(go.Scatter(x=data.index, y=data['Lower Band'], line=dict(color='green', width=1.5), name='Lower Band(Buy)'))
+        # Mark values above Upper Bollinger Band as green, and below Lower Bollinger Band as red
+        above_upper_band = data[data['close'] > data['Upper_Band']]
+        below_lower_band = data[data['close'] < data['Lower_Band']]
 
-    fig.add_trace(go.Candlestick(x=data.index, open=data['Open'], high=data['High'], low=data['Low'], close=data['Close'], name='Market Data'))
-    if 'longName' in tickerData.info:
-        string_name = tickerData.info['longName']
+        # Create a new DataFrame for scatter plot data
+        scatter_data = pd.DataFrame(index=data.index)
+        scatter_data['AboveUpperBand'] = above_upper_band['close']
+        scatter_data['BelowLowerBand'] = below_lower_band['close']
 
-    fig.update_layout(
-        title=string_name + ' Live Share Price',
-        yaxis_title = 'Stock Price')
+        # use dark background for plots
+        style.use('dark_background')
 
-    return fig
+        # Plotting
+        add_bollinger = [
+        mpf.make_addplot(data['Upper_Band'], color='b'),
+        mpf.make_addplot(data['Lower_Band'], color='b'),
+        mpf.make_addplot(scatter_data['AboveUpperBand'], type='scatter', color='g', marker='^'),
+        mpf.make_addplot(scatter_data['BelowLowerBand'], type='scatter', color='r', marker='v'),
+        ]
+
+        fig, ax = mpf.plot(data, type='candle', addplot=add_bollinger, figratio=(10, 6), volume=True, style='nightclouds', returnfig=True)
+        return fig
+
+
+def bollingerPeriod(symbol, exchange, no_steps_from_final_steps, interval_length, number_of_bars):
+
+    tv = TvDatafeed(username, password)
+    index_data = tv.get_hist(symbol=symbol,exchange=exchange,interval=interval(interval_length),n_bars=number_of_bars)
+    data = index_data.tail(no_steps_from_final_steps)
+
+    if not data.empty:
+        # Calculate Bollinger Bands
+        data['20_MA'] = data['close'].rolling(window=20).mean()
+        data['Upper_Band'] = data['20_MA'] + 2 * data['close'].rolling(window=20).std()
+        data['Lower_Band'] = data['20_MA'] - 2 * data['close'].rolling(window=20).std()
+
+        # Calculate Moving Averages
+        data['MA_7'] = data['close'].rolling(window=7).mean()
+        data['MA_20'] = data['close'].rolling(window=21).mean()
+        data['MA_100'] = data['close'].rolling(window=99).mean()
+        data['MA_500'] = data['close'].rolling(window=200).mean()
+
+        # Mark values below all three moving averages as orange, and above all as black
+        below_all_moving_averages = data[(data['close'] < data['MA_7']) & (data['close'] < data['MA_20']) & (data['close'] < data['MA_100'])& (data['close'] < data['MA_500'])]
+        above_all_moving_averages = data[(data['close'] > data['MA_7']) & (data['close'] > data['MA_20']) & (data['close'] > data['MA_100'])& (data['close'] > data['MA_500'])]
+
+        # Create a new DataFrame for scatter plot data
+        scatter_data = pd.DataFrame(index=data.index)
+        scatter_data['AboveAllMA'] = above_all_moving_averages['close']
+        scatter_data['BelowAllMA'] = below_all_moving_averages['close']
+
+        # Plotting
+        add_bollinger = [
+            mpf.make_addplot(data['Upper_Band'], color='b'),
+            mpf.make_addplot(data['Lower_Band'], color='b'),
+            mpf.make_addplot(data['MA_7'], color='orange'),
+            mpf.make_addplot(data['MA_20'], color='green'),
+            mpf.make_addplot(data['MA_100'], color='red'),
+            mpf.make_addplot(data['MA_500'], color='yellow'),
+            mpf.make_addplot(scatter_data['AboveAllMA'], type='scatter', color='g', marker='^'),
+            mpf.make_addplot(scatter_data['BelowAllMA'], type='scatter', color='r', marker='v'),
+        ]
+
+        fig, ax = mpf.plot(data, type='candle', addplot=add_bollinger, figratio=(10, 6), volume=True, style = 'nightclouds', returnfig=True)
+        return fig    
+
+def plot_data(symbol, exchange, tail, interval_length, number_of_bars):
+
+    tv = TvDatafeed(username, password)
+    index_data = tv.get_hist(symbol=symbol,exchange=exchange,interval=interval(interval_length),n_bars=number_of_bars)
+    # Consider the last 100 data for better view.
+    df = index_data.tail(tail)
+    if not df.empty:
+        df = df.reset_index()
+
+        df['datetime'] = pd.to_datetime(df['datetime'])
+        df['datetime'] = df['datetime'].apply(mdates.date2num)
+
+        df['20_MA'] = df['close'].rolling(window=20).mean()
+        df['BB_upper_2'] = df['20_MA'] + 2 * df['close'].rolling(window=20).std()
+        df['BB_lower_2'] = df['20_MA'] - 2 * df['close'].rolling(window=20).std()
+
+        # Create a figure and axis
+        fig, ax = plt.subplots()
+
+        # Plot candlestick chart
+        #candlestick_ohlc(ax, df.values, width=0.6, colorup='g', colordown='r', alpha=0.8)
+
+        # Plot the close_price, bb_upper, and bb_lower
+        ax.plot(df.index, df['close'], label='close')
+        ax.plot(df.index, df['BB_upper_2'], label='BB_upper_2')
+        ax.plot(df.index, df['BB_lower_2'], label='BB_lower_2')
+
+        # Color the points based on the conditions
+        for idx in df.index:
+            if df.loc[idx, 'close'] < df.loc[idx, 'BB_lower_2']:
+                ax.scatter(idx, df.loc[idx, 'close'], color='red')
+            elif df.loc[idx, 'close'] > df.loc[idx, 'BB_upper_2']:
+                ax.scatter(idx, df.loc[idx, 'close'], color='green')
+            else:
+                ax.scatter(idx, df.loc[idx, 'close'], color='blue')
+
+        # Add a legend and title
+        ax.legend()
+        ax.set_title('Close Price with Bollinger Bands')
+
+        # Rotate x-axis labels for better visibility
+        plt.xticks(rotation=45)
+        plt.show()
+        return fig
+        
+
+# Class LSTM
+class LSTM:
+    def __init__(self,df):
+        self.df = df
+        self.model
+
+    def createModel(self):
+        pass
+
 
 # Layout Width
 st. set_page_config(layout="wide")
@@ -189,6 +276,7 @@ if tickerSymbol:
 
 
     # Ticker data
+    tv = TvDatafeed(username, password)
     if period != 'Please Choose':
         if period in ['1m', '2m', '5m', '15m', '30m', '60m', '90m', '1h', '1d']:
             tickerDf = tickerData.history(period=period, interval="1m") #get the historical prices for this ticker
@@ -209,59 +297,34 @@ if tickerSymbol:
 
         # Bollinger bands
         st.header('Bollinger Bands', divider='rainbow')
-        tab11, tab12 = st.tabs(["Live Stream", "Periodic"])
+        tab00, tab11, tab12 = st.tabs(["Live Stream", "STD 2", "STD 3"])
+        with tab00:
+            pass
 
         with tab11:
-            fig = bollingerLive(tickerData,21,"1d","1m")
+            # fig = bollingerStd(tickerSymbol,exchange,20,1000,24,10000)
+            # st.pyplot(fig)
+            qf = cf.QuantFig(tickerDf,title='STD-2',legend='top',name='GS',up_color='green', down_color='red')
+            qf.add_bollinger_bands(periods=20, boll_std=2, colors=['cyan','grey'], fill=True)
+            qf.add_volume(name='Volume',up_color='green', down_color='red')
+            fig = qf.iplot(asFigure=True)
             st.plotly_chart(fig, use_container_width=True)
 
         with tab12:
-            fig = bollingerStd(tickerDf,21)
+            qf = cf.QuantFig(tickerDf,title='STD-3',legend='top',name='GS',up_color='green', down_color='red')
+            qf.add_bollinger_bands(periods=30, boll_std=3, colors=['cyan','grey'], fill=True)
+            qf.add_volume(name='Volume',up_color='green', down_color='red')
+            fig = qf.iplot(asFigure=True)
             st.plotly_chart(fig, use_container_width=True)
 
 
         # Bollinger bands
         st.header('Models, Accuracy and Prediction', divider='rainbow')
         #tab21, tab22, tab23, tab24 = st.tabs(["LSTM", "Chart 1", "Chart 2", "Chart 3"])
-        tab21, tab22, tab23 = st.tabs(["LSTM", "Bi LSTM", "Prediction"])
+        tab21, tab22, tab23 = st.tabs(["LSTM", "Accuracy", "Prediction"])
         with tab21:
-            # df2 = tickerDf.reset_index()['Close']
-            # scaler = MinMaxScaler()
-            # df2 = scaler.fit_transform(np.array(df2).reshape(-1,1))
-
-            # train_size = int(len(df2)*0.65)
-            # test_size = len(df2) - train_size
-            # train_data,test_data = df2[0:train_size,:],df2[train_size:len(df2),:1]
-
-            # time_step = 100
-            # X_train,Y_train =  create_dataset(train_data,time_step)
-            # X_test,Y_test =  create_dataset(test_data,time_step)
-
-            # model = tf.keras.models.load_model("stock_prediction_LSTM_model.h5")
-            # model.fit(X_train,Y_train,validation_data = (X_test,Y_test),epochs = 10,batch_size = 64,verbose = 1)
-
-            # train_predict = model.predict(X_train)
-            # test_predict = model.predict(X_test)
-
-            # train_predict = scaler.inverse_transform(train_predict)
-            # test_predict = scaler.inverse_transform(test_predict)
-
-            # look_back = 100
-
-            # trainPredictPlot = np.empty_like(df2)
-            # trainPredictPlot[:,:] = np.nan
-            # trainPredictPlot[look_back : len(train_predict)+look_back,:] = train_predict
-
-            # testPredictPlot = np.empty_like(df2)
-            # testPredictPlot[:,:] = np.nan
-            # testPredictPlot[len(train_predict)+(look_back)*2 + 1 : len(df2) - 1,:] = test_predict
-
-            # plt.plot(scaler.inverse_transform(df2))
-            # plt.plot(trainPredictPlot)
-            # plt.plot(testPredictPlot)
-            # st.show()
-            #st.plotly_chart(fig, use_container_width=True)
             pass
+
     else:
         st.write('Unable to find!')
     ####
