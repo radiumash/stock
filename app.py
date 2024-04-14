@@ -79,13 +79,25 @@ def bollingerStd(data, moving_avg_size):
         string_name = tickerData.info['longName']
 
     fig.update_layout(
-        title=string_name + ' Live Share Price',
+        title=string_name + ' Historical Share Price',
         yaxis_title = 'Stock Price')
 
     return fig
 
 # Layout Width
 st. set_page_config(layout="wide")
+
+st.markdown("""
+<style>
+.big-font {
+    font-size:80px !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+st.markdown('<p class="big-font">Stock Price Prediction</p>', unsafe_allow_html=True)
+
+
 # Sidebar
 st.sidebar.subheader('Filter Parameters')
 
@@ -214,56 +226,60 @@ if tickerSymbol:
 
         # Bollinger bands
         st.header('Models and Prediction', divider='rainbow')
-        #tab21, tab22, tab23, tab24 = st.tabs(["LSTM", "Chart 1", "Chart 2", "Chart 3"])
+        st.subheader("Stock Price Prediction: **%s**" % string_name)
+        st.write("Please click below button to get a prediction for the next day!")
+        if st.button("Prediction", type="primary"):
+            #tab21, tab22, tab23, tab24 = st.tabs(["LSTM", "Chart 1", "Chart 2", "Chart 3"])
 
-        path_to_model1 = './models/LSTM_model.h5'
-        path_to_model2 = './models/Bi_LSTM_model.h5'
+            path_to_model1 = './models/LSTM_model.h5'
+            path_to_model2 = './models/Bi_LSTM_model.h5'
 
-        # with open(path_to_model1, 'rb') as file1:
-        #     model1 = load_model(file1)
+            # with open(path_to_model1, 'rb') as file1:
+            #     model1 = load_model(file1)
 
-        # with open(path_to_model2, 'rb') as file2:
-        #     model2 = load_model(file2)
+            # with open(path_to_model2, 'rb') as file2:
+            #     model2 = load_model(file2)
 
-        model1 = load_model(path_to_model1)
-        model2 = load_model(path_to_model2)
+            model1 = load_model(path_to_model1)
+            model2 = load_model(path_to_model2)
 
-        y = tickerDf['Close'].fillna(method='ffill')
-        y = y.values.reshape(-1, 1)
+            y = tickerDf['Close'].fillna(method='ffill')
+            y = y.values.reshape(-1, 1)
 
-        # scale the data
-        scaler = MinMaxScaler(feature_range=(0, 1))
-        scaler = scaler.fit(y)
-        y = scaler.transform(y)
+            # scale the data
+            scaler = MinMaxScaler(feature_range=(0, 1))
+            scaler = scaler.fit(y)
+            y = scaler.transform(y)
 
-        # generate the input and output sequences
-        n_lookback = 7  # length of input sequences (lookback period)
-        n_forecast = 7  # length of output sequences (forecast period)
+            # generate the input and output sequences
+            n_lookback = 7  # length of input sequences (lookback period)
+            n_forecast = 7  # length of output sequences (forecast period)
 
-        X = []
-        Y = []
+            X = []
+            Y = []
 
-        for i in range(n_lookback, len(y) - n_forecast + 1):
-            X.append(y[i - n_lookback: i])
-            Y.append(y[i: i + n_forecast])
+            for i in range(n_lookback, len(y) - n_forecast + 1):
+                X.append(y[i - n_lookback: i])
+                Y.append(y[i: i + n_forecast])
 
-        X = np.array(X)
-        Y = np.array(Y)
-        # generate the forecasts
-        X_ = y[- n_lookback:]  # last available input sequence
-        X_ = X_.reshape(1, n_lookback, 1)
+            X = np.array(X)
+            Y = np.array(Y)
+            # generate the forecasts
+            X_ = y[- n_lookback:]  # last available input sequence
+            X_ = X_.reshape(1, n_lookback, 1)
 
-        Y_ = model1.predict(X_).reshape(-1, 1)
-        Y_ = scaler.inverse_transform(Y_)
-        st.header('LSTM')
-        st.write("Stock Price Prediction:")
-        st.title(Y_[0][0])   
+            col1, col2 = st.columns(2)
+            with col1:
+                Y_ = model1.predict(X_).reshape(-1, 1)
+                Y_ = scaler.inverse_transform(Y_)
+                st.header('LSTM')
+                st.title(Y_[0][0])   
 
-        Y_ = model2.predict(X_).reshape(-1, 1)
-        Y_ = scaler.inverse_transform(Y_)     
-        st.header('Bi-LSTM')
-        st.write("Stock Price Prediction:")
-        st.title(Y_[0][0]) 
+            with col2:
+                Y_ = model2.predict(X_).reshape(-1, 1)
+                Y_ = scaler.inverse_transform(Y_)     
+                st.header('Bi-LSTM')
+                st.title(Y_[0][0]) 
 
     else:
         st.write('Unable to find!')
