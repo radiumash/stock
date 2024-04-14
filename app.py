@@ -3,16 +3,16 @@ import numpy as np
 import plotly.graph_objs as go
 import streamlit as st
 import yfinance as yf
-import sys
-import path
+# import sys
+# import path
 from sklearn.preprocessing import MinMaxScaler
 from datetime import datetime, timedelta
 from keras.models import load_model
 import warnings
 warnings.simplefilter("ignore")
 
-dir = path.Path(__file__).abspath()
-sys.path.append(dir.parent.parent)
+# dir = path.Path(__file__).abspath()
+# sys.path.append(dir.parent.parent)
 
 exchange = "NASDAQ"
 
@@ -216,14 +216,17 @@ if tickerSymbol:
         st.header('Models and Prediction', divider='rainbow')
         #tab21, tab22, tab23, tab24 = st.tabs(["LSTM", "Chart 1", "Chart 2", "Chart 3"])
 
-        path_to_model1 = './models/LSTM_model.keras'
-        path_to_model2 = './models/Bi_LSTM_model.keras'
+        path_to_model1 = './models/LSTM_model.h5'
+        path_to_model2 = './models/Bi_LSTM_model.h5'
 
-        with open(path_to_model1, 'rb') as file1:
-            model1 = load_model(file1)
+        # with open(path_to_model1, 'rb') as file1:
+        #     model1 = load_model(file1)
 
-        with open(path_to_model2, 'rb') as file2:
-            model2 = load_model(file2)
+        # with open(path_to_model2, 'rb') as file2:
+        #     model2 = load_model(file2)
+
+        model1 = load_model(path_to_model1)
+        model2 = load_model(path_to_model2)
 
         y = tickerDf['Close'].fillna(method='ffill')
         y = y.values.reshape(-1, 1)
