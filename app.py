@@ -189,7 +189,6 @@ if tickerSymbol:
             tickerDf = tickerData.history(period=period, interval="1d") #get the historical prices for this ticker
     else:
         tickerDf = tickerData.history(period='1d', start=start_date, end=end_date) #get the historical prices for this ticker
-        #tickerDf = tv.get_hist(symbol=tickerSymbol,exchange=exchange,interval=interval(1),n_bars=10000)
 
     if not tickerDf.empty:
         st.header('Ticker data', divider='rainbow')
@@ -211,8 +210,8 @@ if tickerSymbol:
         # Bollinger bands
         st.header('Models and Prediction', divider='rainbow')
         #tab21, tab22, tab23, tab24 = st.tabs(["LSTM", "Chart 1", "Chart 2", "Chart 3"])
-        model1 = load_model('LSTM_model.keras')
-        model2 = load_model('Bi_LSTM_model.keras')
+        model1 = load_model('./LSTM_model.keras')
+        model2 = load_model('./Bi_LSTM_model.keras')
 
         y = tickerDf['Close'].fillna(method='ffill')
         y = y.values.reshape(-1, 1)
