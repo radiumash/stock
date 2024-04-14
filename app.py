@@ -5,10 +5,16 @@ import plotly.graph_objs as go
 import streamlit as st
 
 import yfinance as yf
-from sklearn.preprocessing import MinMaxScaler
 from datetime import datetime, timedelta
 import tensorflow as tf
-from keras.models import load_model
+from keras.models import Sequential
+from keras.layers import Bidirectional, Dense, Dropout
+from keras.layers import LSTM
+from sklearn.model_selection import GridSearchCV
+from keras.optimizers import Adam
+from sklearn.preprocessing import MinMaxScaler
+import math
+from sklearn.metrics import mean_squared_error
 import warnings
 warnings.simplefilter("ignore")
 
@@ -215,48 +221,47 @@ if tickerSymbol:
 
 
         # Bollinger bands
-        st.header('Models and Prediction', divider='rainbow')
+        st.header('Models, Accuracy and Prediction', divider='rainbow')
         #tab21, tab22, tab23, tab24 = st.tabs(["LSTM", "Chart 1", "Chart 2", "Chart 3"])
-        model1 = load_model('LSTM_model.keras')
-        model2 = load_model('Bi_LSTM_model.keras')
+        tab21, tab22, tab23 = st.tabs(["LSTM", "Bi LSTM", "Prediction"])
+        with tab21:
+            # df2 = tickerDf.reset_index()['Close']
+            # scaler = MinMaxScaler()
+            # df2 = scaler.fit_transform(np.array(df2).reshape(-1,1))
 
-        y = tickerDf['Close'].fillna(method='ffill')
-        y = y.values.reshape(-1, 1)
+            # train_size = int(len(df2)*0.65)
+            # test_size = len(df2) - train_size
+            # train_data,test_data = df2[0:train_size,:],df2[train_size:len(df2),:1]
 
-        # scale the data
-        scaler = MinMaxScaler(feature_range=(0, 1))
-        scaler = scaler.fit(y)
-        y = scaler.transform(y)
+            # time_step = 100
+            # X_train,Y_train =  create_dataset(train_data,time_step)
+            # X_test,Y_test =  create_dataset(test_data,time_step)
 
-        # generate the input and output sequences
-        n_lookback = 7  # length of input sequences (lookback period)
-        n_forecast = 7  # length of output sequences (forecast period)
+            # model = tf.keras.models.load_model("stock_prediction_LSTM_model.h5")
+            # model.fit(X_train,Y_train,validation_data = (X_test,Y_test),epochs = 10,batch_size = 64,verbose = 1)
 
-        X = []
-        Y = []
+            # train_predict = model.predict(X_train)
+            # test_predict = model.predict(X_test)
 
-        for i in range(n_lookback, len(y) - n_forecast + 1):
-            X.append(y[i - n_lookback: i])
-            Y.append(y[i: i + n_forecast])
+            # train_predict = scaler.inverse_transform(train_predict)
+            # test_predict = scaler.inverse_transform(test_predict)
 
-        X = np.array(X)
-        Y = np.array(Y)
-        # generate the forecasts
-        X_ = y[- n_lookback:]  # last available input sequence
-        X_ = X_.reshape(1, n_lookback, 1)
+            # look_back = 100
 
-        Y_ = model1.predict(X_).reshape(-1, 1)
-        Y_ = scaler.inverse_transform(Y_)
-        st.header('LSTM')
-        st.write("Stock Price Prediction:")
-        st.title(Y_[0][0])   
+            # trainPredictPlot = np.empty_like(df2)
+            # trainPredictPlot[:,:] = np.nan
+            # trainPredictPlot[look_back : len(train_predict)+look_back,:] = train_predict
 
-        Y_ = model2.predict(X_).reshape(-1, 1)
-        Y_ = scaler.inverse_transform(Y_)     
-        st.header('Bi-LSTM')
-        st.write("Stock Price Prediction:")
-        st.title(Y_[0][0]) 
+            # testPredictPlot = np.empty_like(df2)
+            # testPredictPlot[:,:] = np.nan
+            # testPredictPlot[len(train_predict)+(look_back)*2 + 1 : len(df2) - 1,:] = test_predict
 
+            # plt.plot(scaler.inverse_transform(df2))
+            # plt.plot(trainPredictPlot)
+            # plt.plot(testPredictPlot)
+            # st.show()
+            #st.plotly_chart(fig, use_container_width=True)
+            pass
     else:
         st.write('Unable to find!')
     ####
