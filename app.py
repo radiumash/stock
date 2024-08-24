@@ -8,6 +8,7 @@ import yfinance as yf
 from sklearn.preprocessing import MinMaxScaler
 from datetime import datetime, timedelta
 from keras.models import load_model
+from pathlib import Path
 import warnings
 warnings.simplefilter("ignore")
 
@@ -231,9 +232,9 @@ if tickerSymbol:
         if st.button("Prediction", type="primary"):
             #tab21, tab22, tab23, tab24 = st.tabs(["LSTM", "Chart 1", "Chart 2", "Chart 3"])
 
-            path_to_model1 = './models/ARIMA_model.h5'
-            path_to_model2 = './models/LSTM_model.h5'
-            path_to_model3 = './models/RNN_model.h5'
+            path_to_model1 = Path(__file__).parents[0] / 'models/ARIMA_model.h5'
+            path_to_model2 = Path(__file__).parents[0] / 'models/LSTM_model.h5'
+            path_to_model3 = Path(__file__).parents[0] / 'models/RNN_model.h5'
 
             # with open(path_to_model1, 'rb') as file1:
             #     model1 = load_model(file1)
@@ -241,9 +242,9 @@ if tickerSymbol:
             # with open(path_to_model2, 'rb') as file2:
             #     model2 = load_model(file2)
 
-            model1 = load_model(path_to_model1)
-            model2 = load_model(path_to_model2)
-            model3 = load_model(path_to_model3)
+            model1 = load_model(path_to_model1, compile=False)
+            model2 = load_model(path_to_model2, compile=False)
+            model3 = load_model(path_to_model3, compile=False)
 
             y = tickerDf['Close'].fillna(method='ffill')
             y = y.values.reshape(-1, 1)
@@ -272,22 +273,25 @@ if tickerSymbol:
 
             col1, col2, col3 = st.columns(3)
             with col1:
+                model1.compile(loss='mae', optimizer='adam')
                 Y_ = model1.predict(X_).reshape(-1, 1)
                 Y_ = scaler.inverse_transform(Y_)
                 st.header('ARIMA')
                 st.title(Y_[0][0])   
 
             with col2:
+                model2.compile(loss='mae', optimizer='adam')
                 Y_ = model2.predict(X_).reshape(-1, 1)
                 Y_ = scaler.inverse_transform(Y_)     
                 st.header('LSTM')
                 st.title(Y_[0][0]) 
 
             with col3:
-                Y_ = model2.predict(X_).reshape(-1, 1)
+                model3.compile(loss='mae', optimizer='adam')
+                Y_ = model3.predict(X_).reshape(-1, 1)
                 Y_ = scaler.inverse_transform(Y_)     
                 st.header('RNN')
-                st.title(Y_[0][0])                 
+                st.title(Y_[0][0]) 
 
     else:
         st.write('Unable to find!')
