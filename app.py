@@ -8,7 +8,6 @@ import yfinance as yf
 from sklearn.preprocessing import MinMaxScaler
 from datetime import datetime, timedelta
 from keras.models import load_model
-import statsmodels.api as sm
 from pathlib import Path
 import warnings
 warnings.simplefilter("ignore")
