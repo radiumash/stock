@@ -231,8 +231,9 @@ if tickerSymbol:
         if st.button("Prediction", type="primary"):
             #tab21, tab22, tab23, tab24 = st.tabs(["LSTM", "Chart 1", "Chart 2", "Chart 3"])
 
-            path_to_model1 = './models/LSTM_model.h5'
-            path_to_model2 = './models/Bi_LSTM_model.h5'
+            path_to_model1 = './models/ARIMA_model.h5'
+            path_to_model2 = './models/LSTM_model.h5'
+            path_to_model3 = './models/RNN_model.h5'
 
             # with open(path_to_model1, 'rb') as file1:
             #     model1 = load_model(file1)
@@ -242,6 +243,7 @@ if tickerSymbol:
 
             model1 = load_model(path_to_model1)
             model2 = load_model(path_to_model2)
+            model3 = load_model(path_to_model3)
 
             y = tickerDf['Close'].fillna(method='ffill')
             y = y.values.reshape(-1, 1)
@@ -268,18 +270,24 @@ if tickerSymbol:
             X_ = y[- n_lookback:]  # last available input sequence
             X_ = X_.reshape(1, n_lookback, 1)
 
-            col1, col2 = st.columns(2)
+            col1, col2, col3 = st.columns(3)
             with col1:
                 Y_ = model1.predict(X_).reshape(-1, 1)
                 Y_ = scaler.inverse_transform(Y_)
-                st.header('LSTM')
+                st.header('ARIMA')
                 st.title(Y_[0][0])   
 
             with col2:
                 Y_ = model2.predict(X_).reshape(-1, 1)
                 Y_ = scaler.inverse_transform(Y_)     
-                st.header('Bi-LSTM')
+                st.header('LSTM')
                 st.title(Y_[0][0]) 
+
+            with col3:
+                Y_ = model2.predict(X_).reshape(-1, 1)
+                Y_ = scaler.inverse_transform(Y_)     
+                st.header('RNN')
+                st.title(Y_[0][0])                 
 
     else:
         st.write('Unable to find!')
